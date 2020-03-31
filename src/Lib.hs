@@ -1,6 +1,3 @@
-{-# LANGUAGE RecordWildCards #-}
-{-# LANGUAGE TypeOperators   #-}
-
 module Lib
     ( someFunc
     ) where
@@ -12,12 +9,12 @@ import Codec.Picture.Geometry
 import Codec.Picture.Types
 
 someFunc :: IO ()
-someFunc = writePng "output.png" $ addPolygon blankImage
+someFunc = writePng "output.png" $ addPolygon [(1,1), (150, 300), (300, 150)] (PixelRGBA8 100 100 100 255) blankImage
 
-addPolygon :: Image PixelRGBA8 -> Image PixelRGBA8
-addPolygon img = runST $ do
+addPolygon :: Pixel a => [Point2D] -> a -> Image a -> Image a
+addPolygon points color img = runST $ do
   mimg <- thawImage img
-  fillPolygon mimg ((closed . clockwise) [(1,1), (150, 300), (300, 150)]) (PixelRGBA8 100 100 100 255)
+  fillPolygon mimg ((closed . clockwise) points) color
   unsafeFreezeImage mimg
 
 
