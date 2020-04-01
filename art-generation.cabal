@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 7005aa83c43e2131e3a07166690145e00138b8116b9764a33f3f522ad527c74a
+-- hash: 65a2f930a8e9c7c96be3b04a243a0509a72ab751a812ba06ef965093c85c5fd4
 
 name:           art-generation
 version:        0.1.0.0
@@ -37,6 +37,7 @@ library
     , JuicyPixels-canvas
     , base >=4.7 && <5
     , juicy-draw
+    , random
   default-language: Haskell2010
 
 executable art-generation-exe
@@ -52,6 +53,7 @@ executable art-generation-exe
     , art-generation
     , base >=4.7 && <5
     , juicy-draw
+    , random
   default-language: Haskell2010
 
 test-suite art-generation-test
@@ -68,4 +70,5 @@ test-suite art-generation-test
     , art-generation
     , base >=4.7 && <5
     , juicy-draw
+    , random
   default-language: Haskell2010

@@ -24,6 +24,7 @@ dependencies:
 - JuicyPixels
 - JuicyPixels-canvas
 - juicy-draw
+- random
 
 library:
   source-dirs: src
