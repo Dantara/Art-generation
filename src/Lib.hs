@@ -7,10 +7,16 @@ import Codec.Picture
 import System.Random
 import Graphics.Rasterific
 import Graphics.Rasterific.Texture
+import Codec.Picture.RGBA8
 
 someFunc :: IO ()
 someFunc = do
   g <- newStdGen
+  imageLoad <- readImage "input.png"
+  case imageLoad of
+    Left error -> putStrLn error
+    Right image -> putStrLn "Input image is loaded"
+
   writePng "output.png" $ finalImage g
 
 finalImage :: RandomGen g => g -> Image PixelRGBA8

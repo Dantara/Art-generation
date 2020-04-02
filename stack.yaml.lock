@@ -32,6 +32,13 @@ packages:
       sha256: b8bdc2259e2f943a7252fb164805666fe108ac959d398e0af27b43ba2ebc241c
   original:
     hackage: mtl-2.2.2
+- completed:
+    hackage: JuicyPixels-util-0.2@sha256:54df721dc1194e3f1934a7696274e12479851d26bd440e92fce58af5c11b7fa9,929
+    pantry-tree:
+      size: 222
+      sha256: 0af4c927713168e03735d75e9b68fec8657bc5478b4fa1d294da9e4d463e044c
+  original:
+    hackage: JuicyPixels-util-0.2
 snapshots:
 - completed:
     size: 491372

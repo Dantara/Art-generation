@@ -25,6 +25,7 @@ dependencies:
 - random
 - Rasterific
 - mtl
+- JuicyPixels-util
 
 library:
   source-dirs: src

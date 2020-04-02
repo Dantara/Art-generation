@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: da4322905c9e8bff2fac7b4790286acb4fa06a771c6b9abbad7c536f0e12a135
+-- hash: 7c286e079b9b5aea3e1342d1f5d48fed174825fa5ace98a5a131a80391884e96
 
 name:           art-generation
 version:        0.1.0.0
@@ -34,6 +34,7 @@ library
       src
   build-depends:
       JuicyPixels
+    , JuicyPixels-util
     , Rasterific
     , base >=4.7 && <5
     , mtl
@@ -49,6 +50,7 @@ executable art-generation-exe
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       JuicyPixels
+    , JuicyPixels-util
     , Rasterific
     , art-generation
     , base >=4.7 && <5
@@ -66,6 +68,7 @@ test-suite art-generation-test
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       JuicyPixels
+    , JuicyPixels-util
     , Rasterific
     , art-generation
     , base >=4.7 && <5
