@@ -12,26 +12,19 @@ packages:
   original:
     hackage: JuicyPixels-3.3.5
 - completed:
-    hackage: JuicyPixels-canvas-0.1.0.0@sha256:5a4651a45cf88836cc3ec6d3f8bb0fa062ec8083d9a1906b81696fe90a473dda,1152
-    pantry-tree:
-      size: 230
-      sha256: 227c29949c744c209f18f6f56922efa5d87ead399a93c87a7474424ab6846e65
-  original:
-    hackage: JuicyPixels-canvas-0.1.0.0
-- completed:
-    hackage: juicy-draw-0.2.0.0@sha256:436a9b67e8c1d976a08bd5932c00a7204848589df6c18df0dcec00aea584614a,1253
-    pantry-tree:
-      size: 395
-      sha256: 67f1e16fe07671969621bf2e79848472bae9e949a28f75fca7867fe0af951c28
-  original:
-    hackage: juicy-draw-0.2.0.0
-- completed:
     hackage: random-1.1@sha256:7b67624fd76ddf97c206de0801dc7e888097e9d572974be9b9ea6551d76965df,1777
     pantry-tree:
       size: 637
       sha256: 14a1b01728c5584e87c9fa00746a66e28ffd89dd2c0eabd334c8463953496e1b
   original:
     hackage: random-1.1
+- completed:
+    hackage: Rasterific-0.7.5.2@sha256:95f2e3a1a10ca50c440afe57c41865607d3d4abe8770dd79fd009a866d5ebe73,6008
+    pantry-tree:
+      size: 7098
+      sha256: 8bbf12edf269cf17a36201a651e925c25ed9f3f35369d4efd56c695c84dcd028
+  original:
+    hackage: Rasterific-0.7.5.2
 snapshots:
 - completed:
     size: 491372
