@@ -36,9 +36,8 @@ packages:
 #
 extra-deps:
   - JuicyPixels-3.3.5
-  - JuicyPixels-canvas-0.1.0.0
-  - juicy-draw-0.2.0.0
   - random-1.1
+  - Rasterific-0.7.5.2
 # - acme-missiles-0.3
 # - git: https://github.com/commercialhaskell/stack.git
 #   commit: e7b331f14bcffb8367cd58fbfc8b40ec7642100a
