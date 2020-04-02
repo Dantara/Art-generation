@@ -3,6 +3,7 @@ module Lib
     ) where
 
 -- import Control.Monad.ST
+import Control.Monad.State.Lazy
 import Codec.Picture
 -- import Codec.Picture.Types
 import System.Random
@@ -32,18 +33,14 @@ addPolygon points color drawing = withTexture (uniformTexture color) $ do
   drawing
 
 randomColor :: RandomGen g => g -> (PixelRGBA8, g)
-randomColor g0 = (PixelRGBA8 red green blue op, g4)
+randomColor = runState (liftM4 PixelRGBA8 r r r r)
   where
-    (red, g1) = randomR (0, 255) g0
-    (green, g2) = randomR (0, 255) g1
-    (blue, g3) = randomR (0, 255) g2
-    (op, g4) = randomR (0, 255) g3
+    r = state $ randomR (0, 255)
 
 randomCoord :: RandomGen g => g -> (Point, g)
-randomCoord g0 = (V2 x y, g2)
+randomCoord = runState (liftM2 V2 r r)
   where
-    (x, g1) = randomR (0, 512) g0
-    (y, g2) = randomR (0, 512) g1
+    r = state $ randomR (0, 512)
 
 addRandomTriangle :: RandomGen g => Drawing PixelRGBA8 () -> g -> (Drawing PixelRGBA8 (), g)
 addRandomTriangle draw g0 = (addPolygon [coord1, coord2, coord3] color draw, g4)
