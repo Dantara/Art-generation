@@ -36,8 +36,6 @@ packages:
 #
 extra-deps:
   - JuicyPixels-3.3.5
-  # - JuicyPixels-canvas-0.1.0.0
-  # - juicy-draw-0.2.0.0
   - random-1.1
   - Rasterific-0.7.5.2
 # - acme-missiles-0.3
