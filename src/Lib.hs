@@ -2,9 +2,9 @@ module Lib
     ( someFunc
     ) where
 
-import Control.Monad.ST
+-- import Control.Monad.ST
 import Codec.Picture
-import Codec.Picture.Types
+-- import Codec.Picture.Types
 import System.Random
 import Graphics.Rasterific
 import Graphics.Rasterific.Texture
