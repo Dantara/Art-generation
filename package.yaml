@@ -26,6 +26,7 @@ dependencies:
 - Rasterific
 - mtl
 - JuicyPixels-util
+- conversion
 
 library:
   source-dirs: src

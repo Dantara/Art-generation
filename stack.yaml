@@ -40,6 +40,7 @@ extra-deps:
   - Rasterific-0.7.5.2
   - mtl-2.2.2
   - JuicyPixels-util-0.2
+  - conversion-1.2.1
 # - acme-missiles-0.3
 # - git: https://github.com/commercialhaskell/stack.git
 #   commit: e7b331f14bcffb8367cd58fbfc8b40ec7642100a

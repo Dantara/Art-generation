@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 7c286e079b9b5aea3e1342d1f5d48fed174825fa5ace98a5a131a80391884e96
+-- hash: 2be7dc925215c3d101347ef276614fe581ec40397179d73548fdc8869521e5a2
 
 name:           art-generation
 version:        0.1.0.0
@@ -37,6 +37,7 @@ library
     , JuicyPixels-util
     , Rasterific
     , base >=4.7 && <5
+    , conversion
     , mtl
     , random
   default-language: Haskell2010
@@ -54,6 +55,7 @@ executable art-generation-exe
     , Rasterific
     , art-generation
     , base >=4.7 && <5
+    , conversion
     , mtl
     , random
   default-language: Haskell2010
@@ -72,6 +74,7 @@ test-suite art-generation-test
     , Rasterific
     , art-generation
     , base >=4.7 && <5
+    , conversion
     , mtl
     , random
   default-language: Haskell2010
