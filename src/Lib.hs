@@ -8,16 +8,26 @@ import System.Random
 import Graphics.Rasterific
 import Graphics.Rasterific.Texture
 import Codec.Picture.RGBA8
-import Codec.Picture.Types
+-- import Codec.Picture.Types
 -- import Conversion
+
+data Polygon = Polygon { polygonCoords :: [Point], polygonColor :: PixelRGBA8} deriving (Show)
+type Gene = Polygon
+type Chromosome = [Gene]
+type Population = [Chromosome]
 
 imageSize :: (Int, Int)
 imageSize = (512, 512)
+
+polygonVertices = 6
+chromosomeSize = 50
+popolationSize = 10
 
 someFunc :: IO ()
 someFunc = do
   g <- newStdGen
   imageLoad <- readImage "input.png"
+  -- putStrLn $ show test
   case imageLoad of
     Left err -> putStrLn err
     Right image -> do
@@ -26,6 +36,24 @@ someFunc = do
 
       putStrLn $ show $ imageDiff inputImg outputImg
       writePng "output.png" $ outputImg
+
+addNRandom :: RandomGen g => Int -> (g -> (a, g)) -> ([a], g) -> ([a], g)
+addNRandom 0 _ x = x
+addNRandom n f (ys, g) = addNRandom (n-1) f (y : ys, newG)
+  where
+    (y, newG) = f g
+
+initPolygon :: RandomGen g => g -> (Polygon, g)
+initPolygon g0 = (Polygon coords color, g2)
+  where
+    (coords, g1) = nRandomCoords polygonVertices g0
+    (color, g2) = randomColor g1
+
+initChromosome :: RandomGen g => g -> (Chromosome, g)
+initChromosome g = addNRandom chromosomeSize initPolygon ([], g)
+
+initPopulation :: RandomGen g => g -> (Population, g)
+initPopulation g = addNRandom popolationSize initChromosome ([], g)
 
 finalImage :: RandomGen g => g -> Image PixelRGBA8
 finalImage g = renderDrawing (fst imageSize) (snd imageSize) white final
@@ -41,19 +69,18 @@ pixelDiff px1 px2 = (abs (r1-r2)) + (abs (g1-g2)) + (abs (b1-b2))
     (PixelRGBA8 r2_ g2_ b2_ _) = px2
 
 imageDiff :: Image PixelRGBA8 -> Image PixelRGBA8 -> Integer
-imageDiff img1 img2 =
-  let go x y n
-        | x >= (fst imageSize) = go 0 (y+1) n
-        | y >= (snd imageSize) = n
-        | otherwise =
-          go (x+1) y (n + pixelDiff (pixelAt img1 x y) (pixelAt img2 x y))
-  in go 0 0 0
+imageDiff img1 img2 = sum $ do
+  x <- [0..(x_max-1)]
+  y <- [0..(y_max-1)]
+  return $ pixelDiff (pixelAt img1 x y) (pixelAt img2 x y)
+    where
+      (x_max, y_max) = imageSize
 
 addNRandomTriangles :: RandomGen g => Drawing PixelRGBA8 () -> g -> Int -> (Drawing PixelRGBA8 (), g)
 addNRandomTriangles draw g 0 = (draw, g)
 addNRandomTriangles draw g n = addNRandomTriangles newDraw newG (n-1)
   where
-    (newDraw, newG) = addRandomTriangle draw g
+    (newDraw, newG) = addRandomPolygon 3 draw g
 
 addPolygon :: Pixel a => [Point] -> a -> Drawing a () -> Drawing a ()
 addPolygon points color drawing = withTexture (uniformTexture color) $ do
@@ -71,11 +98,51 @@ randomCoord = runState (liftM2 V2 r1 r2)
     r1 = state $ randomR (0, realToFrac $ fst imageSize)
     r2 = state $ randomR (0, realToFrac $ snd imageSize)
 
-addRandomTriangle :: RandomGen g => Drawing PixelRGBA8 () -> g -> (Drawing PixelRGBA8 (), g)
-addRandomTriangle draw g0 = (addPolygon [coord1, coord2, coord3] color draw, g4)
+addRandomPolygon :: RandomGen g => Int -> Drawing PixelRGBA8 () -> g -> (Drawing PixelRGBA8 (), g)
+addRandomPolygon n draw g0 = (addPolygon coords color draw, g2)
   where
-    (coord1, g1) = randomCoord g0
-    (coord2, g2) = randomCoord g1
-    (coord3, g3) = randomCoord g2
-    (color, g4) = randomColor g3
+    (coords, g1) = nRandomCoords n g0
+    (color, g2) = randomColor g1
 
+nRandomCoords :: RandomGen g => Int -> g -> ([Point], g)
+nRandomCoords n g = addNRandom n randomCoord ([], g)
+
+mutateColorById :: RandomGen g => Int -> PixelRGBA8 -> g -> (PixelRGBA8, g)
+mutateColorById n color g0
+ | n == 1 = (PixelRGBA8 rand g b a, newG)
+ | n == 2 = (PixelRGBA8 r rand b a, newG)
+ | n == 3 = (PixelRGBA8 r g rand a, newG)
+ | n == 4 = (PixelRGBA8 r g b rand, newG)
+   where
+       (PixelRGBA8 r g b a) = color
+       (rand, newG) = randomR (0, 255) g0
+
+mutateColor :: RandomGen g => PixelRGBA8 -> g -> (PixelRGBA8, g)
+mutateColor color g0 = mutateColorById index color g1
+  where
+    (index, g1) = randomR (1, 4) g0
+
+mutateCoordById :: RandomGen g => Int -> [Point] -> g -> ([Point], g)
+mutateCoordById n points@(p:ps) g
+  | n == 0 = (newCoord:ps, g)
+  | otherwise = (concat (first, newCoord:nps), newG)
+    where
+    (first, np:nps) = splitAt (n-1) points
+    (newCoord, newG) = randomCoord g
+
+mutateCoords :: RandomGen g => [Point] -> g -> ([Point], g)
+mutateCoords coords g0 = mutateCoordById index coords g1
+  where
+    (index, g1) = randomR (0, polygonVertices-1) g0
+
+mutateGene :: RandomGen g => Gene -> g -> (Gene, g)
+mutateGene gene g0 =
+  case index of
+    0 -> (Polygon newCoords color, g2)
+    1 -> (Polygon coords newColor, g3)
+  where
+      index :: Int
+      (Polygon coords color) = gene
+      (index, g1) = randomR (0, 1) g0
+      (newCoords, g2) = mutateCoords coords g1
+      (newColor, g3) = mutateColor color g1
