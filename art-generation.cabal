@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 2be7dc925215c3d101347ef276614fe581ec40397179d73548fdc8869521e5a2
+-- hash: 3749f922a08dc5bd1d0261e404c71f4176acc32d4f299fc07dfd8b379ce34215
 
 name:           art-generation
 version:        0.1.0.0
@@ -40,6 +40,7 @@ library
     , conversion
     , mtl
     , random
+    , sort
   default-language: Haskell2010
 
 executable art-generation-exe
@@ -58,6 +59,7 @@ executable art-generation-exe
     , conversion
     , mtl
     , random
+    , sort
   default-language: Haskell2010
 
 test-suite art-generation-test
@@ -77,4 +79,5 @@ test-suite art-generation-test
     , conversion
     , mtl
     , random
+    , sort
   default-language: Haskell2010

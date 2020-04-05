@@ -46,6 +46,13 @@ packages:
       sha256: f199f459ee8ab2ce5f41cb8199ca60a7ad4f7897a5c474e10126dff6035ca4e9
   original:
     hackage: conversion-1.2.1
+- completed:
+    hackage: sort-1.0.0.0@sha256:de275445308122c5b5f457b3a65509a0373295c5831548f012e496caaeb3d369,997
+    pantry-tree:
+      size: 260
+      sha256: b797697c1f1721fbe47bfa9eee854eeade92134fbf9885cf40a2e6ffae6221a4
+  original:
+    hackage: sort-1.0.0.0
 snapshots:
 - completed:
     size: 491372

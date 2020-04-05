@@ -8,6 +8,7 @@ import System.Random
 import Graphics.Rasterific
 import Graphics.Rasterific.Texture
 import Codec.Picture.RGBA8
+import Data.Sort
 -- import Codec.Picture.Types
 -- import Conversion
 
@@ -21,7 +22,8 @@ imageSize = (512, 512)
 
 polygonVertices = 6
 chromosomeSize = 50
-popolationSize = 10
+populationSize :: Int
+populationSize = 10
 
 someFunc :: IO ()
 someFunc = do
@@ -53,13 +55,26 @@ initChromosome :: RandomGen g => g -> (Chromosome, g)
 initChromosome g = addNRandom chromosomeSize initPolygon ([], g)
 
 initPopulation :: RandomGen g => g -> (Population, g)
-initPopulation g = addNRandom popolationSize initChromosome ([], g)
+initPopulation g = addNRandom populationSize initChromosome ([], g)
 
 finalImage :: RandomGen g => g -> Image PixelRGBA8
 finalImage g = renderDrawing (fst imageSize) (snd imageSize) white final
   where
     white = PixelRGBA8 255 255 255 255
     (final, _) = addNRandomTriangles mempty g 500
+
+chromosomeToDraw :: Chromosome -> Drawing PixelRGBA8 () -> Drawing PixelRGBA8 ()
+chromosomeToDraw [] = id
+chromosomeToDraw (p:ps) = chromosomeToDraw ps . addPolygon coords color
+  where
+    (Polygon coords color) = p
+
+renderChromosome :: Chromosome -> Image PixelRGBA8
+renderChromosome c = renderDrawing width height white draw
+  where
+    (width, height) = imageSize
+    white = PixelRGBA8 255 255 255 255
+    draw = chromosomeToDraw c mempty
 
 pixelDiff :: PixelRGBA8 -> PixelRGBA8 -> Integer
 pixelDiff px1 px2 = (abs (r1-r2)) + (abs (g1-g2)) + (abs (b1-b2))
@@ -122,16 +137,24 @@ mutateColor color g0 = mutateColorById index color g1
   where
     (index, g1) = randomR (1, 4) g0
 
-mutateCoordById :: RandomGen g => Int -> [Point] -> g -> ([Point], g)
-mutateCoordById n points@(p:ps) g
-  | n == 0 = (newCoord:ps, g)
-  | otherwise = (concat (first, newCoord:nps), newG)
+mutateXById :: RandomGen g => Int -> (g -> (a, g)) -> [a] -> g -> ([a], g)
+mutateXById n f x@(y:ys) g
+  | n == 0 = (newY:ys, newG)
+  | otherwise = (concat (first, newY:newYs), newG)
     where
-    (first, np:nps) = splitAt (n-1) points
-    (newCoord, newG) = randomCoord g
+      (first, _:newYs) = splitAt (n-1) x
+      (newY, newG) = f g
+
+-- mutateCoordById :: RandomGen g => Int -> [Point] -> g -> ([Point], g)
+-- mutateCoordById n points@(_:ps) g
+--   | n == 0 = (newCoord:ps, newG)
+--   | otherwise = (concat (first, newCoord:nps), newG)
+--     where
+--     (first, _:nps) = splitAt (n-1) points
+--     (newCoord, newG) = randomCoord g
 
 mutateCoords :: RandomGen g => [Point] -> g -> ([Point], g)
-mutateCoords coords g0 = mutateCoordById index coords g1
+mutateCoords coords g0 = mutateXById index randomCoord coords g1
   where
     (index, g1) = randomR (0, polygonVertices-1) g0
 
@@ -146,3 +169,45 @@ mutateGene gene g0 =
       (index, g1) = randomR (0, 1) g0
       (newCoords, g2) = mutateCoords coords g1
       (newColor, g3) = mutateColor color g1
+
+crossover :: Chromosome -> Chromosome -> [Chromosome]
+crossover parent1 parent2 = [child1, child2]
+  where
+    (f1, s1) = splitAt (length parent1 `div` 2) parent1
+    (f2, s2) = splitAt (length parent2 `div` 2) parent2
+    child1 = concat (f1, s2)
+    child2 = concat (f2, s1)
+
+chromosomeDiff :: Chromosome -> Image PixelRGBA8 -> (Chromosome, Integer)
+chromosomeDiff c img = (c, imageDiff img newImg)
+  where
+    newImg = renderChromosome c
+
+populationDiff :: Population -> Image PixelRGBA8 -> [(Chromosome, Integer)]
+populationDiff cs img = map (\c -> chromosomeDiff c img) cs
+
+getParents :: Int -> [(Chromosome, Integer)]  -> [Chromosome]
+getParents n gs = map (\(c,_) -> c) parents
+  where
+    parents = take n $ sortBy (\(_,i1) (_,i2) -> compare i2 i1) gs
+
+addToOffspring :: [Chromosome] -> [Chromosome] -> [Chromosome]
+addToOffspring [] os = os
+addToOffspring (p:ps) os = addToOffspring ps $ concat (os, newOs)
+  where
+    newOs = concat [(crossover p x) | x <- ps]
+
+offspring :: [Chromosome] -> [Chromosome]
+offspring cs = addToOffspring cs []
+
+mutateChromosome :: RandomGen g => Chromosome -> g -> (Chromosome, g)
+mutateChromosome c g = mutateXById index (mutateGene $ c !! index) c newG
+  where
+    (index, newG) = randomR (0, length c - 1) g
+
+-- continue here
+combinePopulation :: RandomGen g => [Chromosome] -> [Chromosome] -> g -> Population
+combinePopulation parents children g = p ++ (take amount $ cycle p)
+  where
+    amount = populationSize - (length $ parents ++ children)
+    p = parents ++ children
