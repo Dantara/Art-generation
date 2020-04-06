@@ -24,17 +24,32 @@ polygonVertices = 6
 chromosomeSize = 50
 populationSize :: Int
 populationSize = 10
+parentsAmount = 2
+gaN = 1
+
+-- someFunc :: IO ()
+-- someFunc = do
+--   g <- newStdGen
+--   imageLoad <- readImage "input.png"
+--   -- putStrLn $ show test
+--   case imageLoad of
+--     Left err -> putStrLn err
+--     Right image -> do
+--       let outputImg = finalImage g
+--           inputImg = fromDynamicImage image
+
+--       putStrLn $ show $ imageDiff inputImg outputImg
+--       writePng "output.png" $ outputImg
 
 someFunc :: IO ()
 someFunc = do
   g <- newStdGen
   imageLoad <- readImage "input.png"
-  -- putStrLn $ show test
   case imageLoad of
     Left err -> putStrLn err
     Right image -> do
-      let outputImg = finalImage g
-          inputImg = fromDynamicImage image
+      let inputImg = fromDynamicImage image
+          outputImg = finalImage inputImg g
 
       putStrLn $ show $ imageDiff inputImg outputImg
       writePng "output.png" $ outputImg
@@ -57,11 +72,11 @@ initChromosome g = addNRandom chromosomeSize initPolygon ([], g)
 initPopulation :: RandomGen g => g -> (Population, g)
 initPopulation g = addNRandom populationSize initChromosome ([], g)
 
-finalImage :: RandomGen g => g -> Image PixelRGBA8
-finalImage g = renderDrawing (fst imageSize) (snd imageSize) white final
-  where
-    white = PixelRGBA8 255 255 255 255
-    (final, _) = addNRandomTriangles mempty g 500
+-- finalImage :: RandomGen g => g -> Image PixelRGBA8
+-- finalImage g = renderDrawing (fst imageSize) (snd imageSize) white final
+--   where
+--     white = PixelRGBA8 255 255 255 255
+--     (final, _) = addNRandomTriangles mempty g 500
 
 chromosomeToDraw :: Chromosome -> Drawing PixelRGBA8 () -> Drawing PixelRGBA8 ()
 chromosomeToDraw [] = id
@@ -91,11 +106,11 @@ imageDiff img1 img2 = sum $ do
     where
       (x_max, y_max) = imageSize
 
-addNRandomTriangles :: RandomGen g => Drawing PixelRGBA8 () -> g -> Int -> (Drawing PixelRGBA8 (), g)
-addNRandomTriangles draw g 0 = (draw, g)
-addNRandomTriangles draw g n = addNRandomTriangles newDraw newG (n-1)
-  where
-    (newDraw, newG) = addRandomPolygon 3 draw g
+-- addNRandomTriangles :: RandomGen g => Drawing PixelRGBA8 () -> g -> Int -> (Drawing PixelRGBA8 (), g)
+-- addNRandomTriangles draw g 0 = (draw, g)
+-- addNRandomTriangles draw g n = addNRandomTriangles newDraw newG (n-1)
+--   where
+--     (newDraw, newG) = addRandomPolygon 3 draw g
 
 addPolygon :: Pixel a => [Point] -> a -> Drawing a () -> Drawing a ()
 addPolygon points color drawing = withTexture (uniformTexture color) $ do
@@ -189,7 +204,7 @@ populationDiff cs img = map (\c -> chromosomeDiff c img) cs
 getParents :: Int -> [(Chromosome, Integer)]  -> [Chromosome]
 getParents n gs = map (\(c,_) -> c) parents
   where
-    parents = take n $ sortBy (\(_,i1) (_,i2) -> compare i2 i1) gs
+    parents = take n $ sortBy (\(_,i1) (_,i2) -> compare i1 i2) gs
 
 addToOffspring :: [Chromosome] -> [Chromosome] -> [Chromosome]
 addToOffspring [] os = os
@@ -205,9 +220,44 @@ mutateChromosome c g = mutateXById index (mutateGene $ c !! index) c newG
   where
     (index, newG) = randomR (0, length c - 1) g
 
--- continue here
-combinePopulation :: RandomGen g => [Chromosome] -> [Chromosome] -> g -> Population
-combinePopulation parents children g = p ++ (take amount $ cycle p)
+mutateChromosomes :: RandomGen g => [Chromosome] -> g -> [(Chromosome, g)]
+mutateChromosomes [] _ = []
+mutateChromosomes (c:cs) g = (newC, newG) : (mutateChromosomes cs newG)
   where
+    (newC, newG) = mutateChromosome c g
+
+mutatePopulation :: RandomGen g => Population -> g -> (Population, g)
+mutatePopulation cs g = (newCs, last states)
+  where
+    (newCs, states) = unzip $ mutateChromosomes cs g
+
+combinePopulation :: RandomGen g => [Chromosome] -> [Chromosome] -> g -> (Population, g)
+combinePopulation parents children g = (p ++  newP, newG)
+  where
+    (newP, newG) = mutatePopulation (take amount $ cycle p) g
     amount = populationSize - (length $ parents ++ children)
     p = parents ++ children
+
+-- populations diff
+-- get parents
+-- crossover
+-- combinePopulation
+gaLoopBody :: RandomGen g => (Population, g, Image PixelRGBA8) -> (Population, g, Image PixelRGBA8)
+gaLoopBody (p, g, img) = (newP, newG, img)
+  where
+    parents = getParents parentsAmount $ populationDiff p img
+    children = offspring parents
+    (newP, newG) = combinePopulation parents children g
+    
+runGANTimes :: RandomGen g => Int -> (Population, g, Image PixelRGBA8) -> (Population, g, Image PixelRGBA8)
+runGANTimes n t = last $ take n $ iterate gaLoopBody t
+
+finalChromosome :: Population -> Image PixelRGBA8 -> Chromosome
+finalChromosome p img = head $ getParents 1 $ populationDiff p img
+
+finalImage :: RandomGen g => Image PixelRGBA8 -> g -> Image PixelRGBA8
+finalImage img g0 = renderChromosome finalC
+  where
+    (initP, g1) = initPopulation g0
+    (finalP, _, _) = runGANTimes gaN (initP, g1, img)
+    finalC = finalChromosome finalP img
