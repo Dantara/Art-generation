@@ -53,6 +53,27 @@ packages:
       sha256: b797697c1f1721fbe47bfa9eee854eeade92134fbf9885cf40a2e6ffae6221a4
   original:
     hackage: sort-1.0.0.0
+- completed:
+    hackage: parallel-3.2.2.0@sha256:c69372af9a39a06739e1d0eaa1f2d8be6b86493a53dbbc455e7b30479c491c6a,1763
+    pantry-tree:
+      size: 392
+      sha256: 0b408143e18070406acc2acb528fc4b695f04161e0beb490351d50d92a841fe3
+  original:
+    hackage: parallel-3.2.2.0
+- completed:
+    hackage: deepseq-1.4.4.0@sha256:76902b99ee97fc059311ddb0df9488c54969adf0a212efa39705981761f06b55,2918
+    pantry-tree:
+      size: 385
+      sha256: edf7ecb1e7195bf2c1b595f462343b8a237351acf73e4d0e66e005fc5baa62f4
+  original:
+    hackage: deepseq-1.4.4.0
+- completed:
+    hackage: deepseq-generics-0.2.0.0@sha256:31cef0b0b8366a65f81ba792eb19aceec5b5ebce0875926afe52e365b1d04824,2662
+    pantry-tree:
+      size: 334
+      sha256: 7ddcfbd5762aaf5cb98e39a5089202afc0b1ad156473293ea15a5b411563f912
+  original:
+    hackage: deepseq-generics-0.2.0.0
 snapshots:
 - completed:
     size: 491372
