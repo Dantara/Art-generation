@@ -74,6 +74,13 @@ packages:
       sha256: 7ddcfbd5762aaf5cb98e39a5089202afc0b1ad156473293ea15a5b411563f912
   original:
     hackage: deepseq-generics-0.2.0.0
+- completed:
+    hackage: primitive-0.7.0.1@sha256:a381571c36edc7dca28b77fe8159b43c14c640087ec5946adacf949feec64231,3433
+    pantry-tree:
+      size: 3221
+      sha256: fea4312bd404ad504e44a7fd933a3b3442c0a5e1c41bd8abec3c2e7282d88e18
+  original:
+    hackage: primitive-0.7.0.1
 snapshots:
 - completed:
     size: 491372

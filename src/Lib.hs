@@ -13,6 +13,9 @@ import Data.Sort
 import Control.Parallel.Strategies
 import GHC.Generics (Generic)
 import Control.DeepSeq
+import Graphics.Rasterific.Immediate
+import Control.Monad.Primitive
+import Control.Monad.ST
 
 imageSize :: (Int, Int)
 imageSize = (512, 512)
@@ -76,18 +79,20 @@ initChromosome g = addNRandom chromosomeSize initPolygon ([], g)
 initPopulation :: RandomGen g => g -> (Population, g)
 initPopulation g = addNRandom populationSize initChromosome ([], g)
 
-chromosomeToDraw :: Chromosome -> Drawing PixelRGBA8 () -> Drawing PixelRGBA8 ()
-chromosomeToDraw [] = id
-chromosomeToDraw (p:ps) = chromosomeToDraw ps . addPolygon coords color
-  where
-    (Polygon coords color) = p
+chromosomeToDraw :: PrimMonad m => Chromosome -> DrawContext m PixelRGBA8 ()
+-- chromosomeToDraw (p:ps) = chromosomeToDraw ps . addPolygon coords color
+chromosomeToDraw = mapM_ addPolygon
+  -- where
+  --   (Polygon coords color) = p
 
 renderChromosome :: Chromosome -> Image PixelRGBA8
-renderChromosome c = renderDrawing width height white draw
+-- renderChromosome c = renderDrawing width height white draw
+renderChromosome c = runST $ runDrawContext width height white drawContext
   where
     (width, height) = imageSize
     white = PixelRGBA8 255 255 255 255
-    draw = chromosomeToDraw c mempty
+    drawContext :: DrawContext (ST s) PixelRGBA8 ()
+    drawContext = chromosomeToDraw c
 
 pixelDiff :: PixelRGBA8 -> PixelRGBA8 -> Integer
 pixelDiff px1 px2 = (abs (r1-r2)) + (abs (g1-g2)) + (abs (b1-b2))
@@ -104,10 +109,15 @@ imageDiff img1 img2 = sum $ do
     where
       (x_max, y_max) = imageSize
 
-addPolygon :: Pixel a => [Point] -> a -> Drawing a () -> Drawing a ()
-addPolygon points color drawing = withTexture (uniformTexture color) $ do
-  fill $ polygon points
-  drawing
+addPolygon :: PrimMonad m => Polygon -> DrawContext m PixelRGBA8 ()
+-- addPolygon points color drawing = withTexture (uniformTexture color) $ do
+--   fill $ polygon points
+--   drawing
+addPolygon p = (fillWithTexture FillWinding texture geometry)
+  where
+    texture = uniformTexture color
+    geometry = polygon coords
+    (Polygon coords color) = p
 
 randomColor :: RandomGen g => g -> (PixelRGBA8, g)
 randomColor = runState (liftM4 PixelRGBA8 r r r r)

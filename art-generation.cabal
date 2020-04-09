@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 3d3b291572e58b3b32c3dc3aabfda3aec0ddb838317797df5e70b25039b94470
+-- hash: 8b98ce38d1c998a86fda82b8ac0a7af587dfdf2e2cc543bf788445dcba6d7e5f
 
 name:           art-generation
 version:        0.1.0.0
@@ -42,6 +42,7 @@ library
     , deepseq-generics
     , mtl
     , parallel
+    , primitive
     , random
     , sort
   default-language: Haskell2010
@@ -64,6 +65,7 @@ executable art-generation-exe
     , deepseq-generics
     , mtl
     , parallel
+    , primitive
     , random
     , sort
   default-language: Haskell2010
@@ -87,6 +89,7 @@ test-suite art-generation-test
     , deepseq-generics
     , mtl
     , parallel
+    , primitive
     , random
     , sort
   default-language: Haskell2010

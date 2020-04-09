@@ -31,6 +31,7 @@ dependencies:
 - parallel
 - deepseq
 - deepseq-generics
+- primitive
 
 library:
   source-dirs: src

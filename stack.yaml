@@ -45,6 +45,7 @@ extra-deps:
   - parallel-3.2.2.0
   - deepseq-1.4.4.0
   - deepseq-generics-0.2.0.0
+  - primitive-0.7.0.1
 # - acme-missiles-0.3
 # - git: https://github.com/commercialhaskell/stack.git
 #   commit: e7b331f14bcffb8367cd58fbfc8b40ec7642100a
