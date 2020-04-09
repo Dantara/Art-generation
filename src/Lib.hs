@@ -79,20 +79,16 @@ initChromosome g = addNRandom chromosomeSize initPolygon ([], g)
 initPopulation :: RandomGen g => g -> (Population, g)
 initPopulation g = addNRandom populationSize initChromosome ([], g)
 
-chromosomeToDraw :: PrimMonad m => Chromosome -> DrawContext m PixelRGBA8 ()
--- chromosomeToDraw (p:ps) = chromosomeToDraw ps . addPolygon coords color
-chromosomeToDraw = mapM_ addPolygon
-  -- where
-  --   (Polygon coords color) = p
+-- chromosomeToDraw :: PrimMonad m => Chromosome -> DrawContext m PixelRGBA8 ()
+-- chromosomeToDraw = mapM_ addPolygon
 
 renderChromosome :: Chromosome -> Image PixelRGBA8
--- renderChromosome c = renderDrawing width height white draw
-renderChromosome c = runST $ runDrawContext width height white drawContext
+renderChromosome c = runST
+  $ runDrawContext width height white
+  $ mapM_ polygonToDrawContext c
   where
     (width, height) = imageSize
     white = PixelRGBA8 255 255 255 255
-    drawContext :: DrawContext (ST s) PixelRGBA8 ()
-    drawContext = chromosomeToDraw c
 
 pixelDiff :: PixelRGBA8 -> PixelRGBA8 -> Integer
 pixelDiff px1 px2 = (abs (r1-r2)) + (abs (g1-g2)) + (abs (b1-b2))
@@ -109,11 +105,8 @@ imageDiff img1 img2 = sum $ do
     where
       (x_max, y_max) = imageSize
 
-addPolygon :: PrimMonad m => Polygon -> DrawContext m PixelRGBA8 ()
--- addPolygon points color drawing = withTexture (uniformTexture color) $ do
---   fill $ polygon points
---   drawing
-addPolygon p = (fillWithTexture FillWinding texture geometry)
+polygonToDrawContext :: PrimMonad m => Polygon -> DrawContext m PixelRGBA8 ()
+polygonToDrawContext p = fillWithTexture FillWinding texture geometry
   where
     texture = uniformTexture color
     geometry = polygon coords
