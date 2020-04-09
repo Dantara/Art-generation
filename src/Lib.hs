@@ -227,7 +227,7 @@ gaLoopBody (p, g, img) = (newP, newG, img)
     parents = getParents parentsAmount $! populationDiff p img
     children = offspring parents
     (newP, newG) = combinePopulation parents children g
-    
+
 runGANTimes :: RandomGen g => Int -> (Population, g, Image PixelRGBA8) -> (Population, g, Image PixelRGBA8)
 runGANTimes n t = last $ take n $ iterate gaLoopBody t
 
