@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: fb7383db97e5eeb3d2a6b618ae40c7d71b09c48c79602ac75d046f88ade45714
+-- hash: 3d3b291572e58b3b32c3dc3aabfda3aec0ddb838317797df5e70b25039b94470
 
 name:           art-generation
 version:        0.1.0.0
@@ -52,7 +52,7 @@ executable art-generation-exe
       Paths_art_generation
   hs-source-dirs:
       app
-  ghc-options: -threaded -rtsopts -with-rtsopts=-N6-qn1 -O2
+  ghc-options: -threaded -rtsopts -with-rtsopts=-N6-qn1 -O2 -Wall
   build-depends:
       JuicyPixels
     , JuicyPixels-util

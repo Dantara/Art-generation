@@ -13,26 +13,6 @@ import Data.Sort
 import Control.Parallel.Strategies
 import GHC.Generics (Generic)
 import Control.DeepSeq
--- import Control.DeepSeq.Generics (genericRnf)
--- import Codec.Picture.Types
--- import Conversion
-
-data Polygon = Polygon [Point] PixelRGBA8 deriving (Show, Generic, NFData)
-type Gene = Polygon
-type Chromosome = [Gene]
-type Population = [Chromosome]
-
--- instance NFData a => NFData (V2 a)
--- instance NFData Word8 => NFData (PixelRGBA8 Word8)
--- instance NFData Polygon
-
--- instance Generic (V2 a)
--- instance Generic PixelRGBA8
-instance NFData (V2 a) where
-  rnf x = seq x ()
-
-instance NFData PixelRGBA8 where
-  rnf x = seq x ()
 
 imageSize :: (Int, Int)
 imageSize = (512, 512)
@@ -41,16 +21,28 @@ polygonVertices :: Int
 polygonVertices = 6
 
 chromosomeSize :: Int
-chromosomeSize = 50
+chromosomeSize = 100
 
 populationSize :: Int
-populationSize = 16
+populationSize = 20
 
 parentsAmount :: Int
 parentsAmount = 2
 
 gaN :: Int
-gaN = 3
+gaN = 20
+
+data Polygon = Polygon [Point] PixelRGBA8 deriving (Show, Generic, NFData)
+type Gene = Polygon
+type Chromosome = [Gene]
+type Population = [Chromosome]
+
+
+instance NFData (V2 a) where
+  rnf x = seq x ()
+
+instance NFData PixelRGBA8 where
+  rnf x = seq x ()
 
 someFunc :: IO ()
 someFunc = do
@@ -186,11 +178,7 @@ chromosomeDiff c img = (c, imageDiff img newImg)
     newImg = renderChromosome c
 
 populationDiff :: Population -> Image PixelRGBA8 -> [(Chromosome, Integer)]
--- populationDiff cs img = mapping `using` parList rpar
 populationDiff cs img = parMap rdeepseq (\c -> chromosomeDiff c img) cs
--- populationDiff cs img = map (\c -> chromosomeDiff c img) cs
-  -- where
-    -- mapping = map (\c -> chromosomeDiff c img) cs
 
 getParents :: Int -> [(Chromosome, Integer)]  -> [Chromosome]
 getParents n gs = map (\(c,_) -> c) parents
@@ -254,10 +242,9 @@ finalImage img g0 = renderChromosome finalC
     finalC = finalChromosome finalP img
 
 percentFitness :: Integer -> Float
-percentFitness diff = oneP * ratio
+percentFitness diff = 100 * (1 - ratio)
   where
     (width, height) = imageSize
     [w, h] = toInteger <$> [width, height]
-    maxDiff = 255*3 * w * h
-    ratio = fromIntegral(maxDiff) / fromIntegral(diff)
-    oneP = 100 / fromIntegral(maxDiff)
+    maxDiff = 255*3*w*h
+    ratio = fromIntegral(diff) / fromIntegral(maxDiff)
