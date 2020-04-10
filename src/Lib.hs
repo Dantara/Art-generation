@@ -21,25 +21,36 @@ imageSize :: (Int, Int)
 imageSize = (512, 512)
 
 polygonVertices :: Int
-polygonVertices = 6
+polygonVertices = 5
 
 chromosomeSize :: Int
-chromosomeSize = 100
+chromosomeSize = 75
 
 populationSize :: Int
-populationSize = 20
+populationSize = 32
 
 parentsAmount :: Int
 parentsAmount = 2
 
 gaN :: Int
-gaN = 20
+gaN = 3000
+
+basePolygonColor :: PixelRGBA8
+basePolygonColor = PixelRGBA8 255 255 255 0
+
+baseBackgroundColor :: PixelRGBA8
+baseBackgroundColor = PixelRGBA8 255 255 255 255
+
+inputImagePath :: String
+inputImagePath = "input4.png"
+
+outputImagePath :: String
+outputImagePath = "output.png"
 
 data Polygon = Polygon [Point] PixelRGBA8 deriving (Show, Generic, NFData)
 type Gene = Polygon
 type Chromosome = [Gene]
 type Population = [Chromosome]
-
 
 instance NFData (V2 a) where
   rnf x = seq x ()
@@ -50,7 +61,8 @@ instance NFData PixelRGBA8 where
 someFunc :: IO ()
 someFunc = do
   g <- newStdGen
-  imageLoad <- readImage "input2.png"
+  imageLoad <- readImage inputImagePath
+
   case imageLoad of
     Left err -> putStrLn err
     Right image -> do
@@ -59,7 +71,7 @@ someFunc = do
 
       putStr "Final fitness is: "
       putStrLn $ (show $ percentFitness $ imageDiff inputImg outputImg) ++ "%"
-      writePng "output.png" $ outputImg
+      writePng outputImagePath $ outputImg
 
 addNRandom :: RandomGen g => Int -> (g -> (a, g)) -> ([a], g) -> ([a], g)
 addNRandom 0 _ x = x
@@ -68,27 +80,29 @@ addNRandom n f (ys, g) = addNRandom (n-1) f (y : ys, newG)
     (y, newG) = f g
 
 initPolygon :: RandomGen g => g -> (Polygon, g)
-initPolygon g0 = (Polygon coords color, g2)
+initPolygon g0 = (Polygon coords basePolygonColor, g1)
+  where
+    (coords, g1) = nRandomCoords polygonVertices g0
+
+randomPolygon :: RandomGen g => g -> (Polygon, g)
+randomPolygon g0 = (Polygon coords color, g2)
   where
     (coords, g1) = nRandomCoords polygonVertices g0
     (color, g2) = randomColor g1
 
 initChromosome :: RandomGen g => g -> (Chromosome, g)
-initChromosome g = addNRandom chromosomeSize initPolygon ([], g)
+initChromosome g = addNRandom chromosomeSize randomPolygon ([], g)
 
 initPopulation :: RandomGen g => g -> (Population, g)
 initPopulation g = addNRandom populationSize initChromosome ([], g)
 
--- chromosomeToDraw :: PrimMonad m => Chromosome -> DrawContext m PixelRGBA8 ()
--- chromosomeToDraw = mapM_ addPolygon
-
 renderChromosome :: Chromosome -> Image PixelRGBA8
 renderChromosome c = runST
-  $ runDrawContext width height white
+  $ runDrawContext width height baseBackgroundColor
   $ mapM_ polygonToDrawContext c
   where
     (width, height) = imageSize
-    white = PixelRGBA8 255 255 255 255
+    -- white = PixelRGBA8 255 255 255 255
 
 pixelDiff :: PixelRGBA8 -> PixelRGBA8 -> Integer
 pixelDiff px1 px2 = (abs (r1-r2)) + (abs (g1-g2)) + (abs (b1-b2))
@@ -131,7 +145,8 @@ mutateColorById n color g0
  | n == 1 = (PixelRGBA8 rand g b a, newG)
  | n == 2 = (PixelRGBA8 r rand b a, newG)
  | n == 3 = (PixelRGBA8 r g rand a, newG)
- | otherwise = (PixelRGBA8 r g b rand, newG)
+ | n == 4 = (PixelRGBA8 r g b rand, newG)
+ | otherwise = (color, g0)
    where
        (PixelRGBA8 r g b a) = color
        (rand, newG) = randomR (0, 255) g0
@@ -158,14 +173,21 @@ mutateCoords coords g0 = mutateXById index randomCoord coords g1
 mutateGene :: RandomGen g => Gene -> g -> (Gene, g)
 mutateGene gene g0 =
   case index of
-    0 -> (Polygon newCoords color, g2)
-    otherwise -> (Polygon coords newColor, g3)
+    1 -> (Polygon newCoords color, g3)
+    2 -> (Polygon coords newColor, g3)
+    3 -> randomPolygon g0
+    4 -> (Polygon randCoords color, g3)
+    5 -> (Polygon coords randColor, g3)
+    _ -> (gene, g0)
   where
-      index :: Int
+      index :: Integer
       (Polygon coords color) = gene
-      (index, g1) = randomR (0, 1) g0
-      (newCoords, g2) = mutateCoords coords g1
-      (newColor, g3) = mutateColor color g1
+      (index, g1) = randomR (1, 5) g0
+      (g2, g3) = split g1
+      (newCoords, _) = mutateCoords coords g2
+      (newColor, _) = mutateColor color g2
+      (randCoords, _) = nRandomCoords polygonVertices g2
+      (randColor, _) = randomColor g2
 
 crossover :: Chromosome -> Chromosome -> [Chromosome]
 crossover parent1 parent2 = [child1, child2]
@@ -202,22 +224,24 @@ mutateChromosome c g = mutateXById index (mutateGene $ c !! index) c newG
   where
     (index, newG) = randomR (0, length c - 1) g
 
-mutateChromosomes :: RandomGen g => [Chromosome] -> g -> [(Chromosome, g)]
+mutateChromosomes :: RandomGen g => [Chromosome] -> g -> [Chromosome]
 mutateChromosomes [] _ = []
-mutateChromosomes (c:cs) g = (newC, newG) : (mutateChromosomes cs newG)
+mutateChromosomes (c:cs) g = newC : (mutateChromosomes cs g2)
   where
-    (newC, newG) = mutateChromosome c g
+    (newC, _) = mutateChromosome c g1
+    (g1, g2) = split g
 
 mutatePopulation :: RandomGen g => Population -> g -> (Population, g)
-mutatePopulation cs g = (newCs, last states)
+mutatePopulation cs g = (newCs, g2)
   where
-    (newCs, states) = unzip $ mutateChromosomes cs g
+    newCs = mutateChromosomes cs g1
+    (g1, g2) = split g
 
 combinePopulation :: RandomGen g => [Chromosome] -> [Chromosome] -> g -> (Population, g)
-combinePopulation parents children g = (p ++ newP, newG)
+combinePopulation parents children g = (newP <> p, newG)
   where
     (newP, newG) = mutatePopulation (take amount $ cycle p) g
-    amount = populationSize - (length $ parents ++ children)
+    amount = populationSize - (length p)
     p = parents ++ children
 
 -- populations diff
@@ -225,11 +249,12 @@ combinePopulation parents children g = (p ++ newP, newG)
 -- crossover
 -- combinePopulation
 gaLoopBody :: RandomGen g => (Population, g, Image PixelRGBA8) -> (Population, g, Image PixelRGBA8)
-gaLoopBody (p, g, img) = (newP, newG, img)
+gaLoopBody (p, g, img) = (newP, g2, img)
   where
     parents = getParents parentsAmount $! populationDiff p img
     children = offspring parents
-    (newP, newG) = combinePopulation parents children g
+    (newP, _) = combinePopulation parents children g1
+    (g1, g2) = split g
 
 runGANTimes :: RandomGen g => Int -> (Population, g, Image PixelRGBA8) -> (Population, g, Image PixelRGBA8)
 runGANTimes n t = last $ take n $ iterate gaLoopBody t
