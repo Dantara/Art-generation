@@ -32,6 +32,7 @@ dependencies:
 - deepseq
 - deepseq-generics
 - primitive
+- JuicyPixels-extra
 
 library:
   source-dirs: src

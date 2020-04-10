@@ -81,6 +81,13 @@ packages:
       sha256: fea4312bd404ad504e44a7fd933a3b3442c0a5e1c41bd8abec3c2e7282d88e18
   original:
     hackage: primitive-0.7.0.1
+- completed:
+    hackage: JuicyPixels-extra-0.4.1@sha256:04f603f39510e93061906a61801f71a1331edb34b6db41a702601fab6e42f263,2592
+    pantry-tree:
+      size: 1344
+      sha256: 71b0d0e94165eb158bcf5850a3f4ea0227b7792c3f2d6abca9df20f2a9f692a1
+  original:
+    hackage: JuicyPixels-extra-0.4.1
 snapshots:
 - completed:
     size: 491372

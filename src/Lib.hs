@@ -16,24 +16,28 @@ import Control.DeepSeq
 import Graphics.Rasterific.Immediate
 import Control.Monad.Primitive
 import Control.Monad.ST
+import Codec.Picture.Extra
 
 imageSize :: (Int, Int)
 imageSize = (512, 512)
 
+chunkSize :: (Int, Int)
+chunkSize = (8, 8)
+
 polygonVertices :: Int
-polygonVertices = 5
+polygonVertices = 3
 
 chromosomeSize :: Int
-chromosomeSize = 75
+chromosomeSize = 6
 
 populationSize :: Int
-populationSize = 32
+populationSize = 12
 
 parentsAmount :: Int
 parentsAmount = 2
 
 gaN :: Int
-gaN = 3000
+gaN = 200
 
 basePolygonColor :: PixelRGBA8
 basePolygonColor = PixelRGBA8 255 255 255 0
@@ -67,7 +71,8 @@ someFunc = do
     Left err -> putStrLn err
     Right image -> do
       let inputImg = fromDynamicImage image
-          outputImg = finalImage inputImg g
+          outputImg = divideAndConquer inputImg g
+          -- outputImg = finalImage inputImg g
 
       putStr "Final fitness is: "
       putStrLn $ (show $ percentFitness $ imageDiff inputImg outputImg) ++ "%"
@@ -101,7 +106,7 @@ renderChromosome c = runST
   $ runDrawContext width height baseBackgroundColor
   $ mapM_ polygonToDrawContext c
   where
-    (width, height) = imageSize
+    (width, height) = chunkSize
     -- white = PixelRGBA8 255 255 255 255
 
 pixelDiff :: PixelRGBA8 -> PixelRGBA8 -> Integer
@@ -117,7 +122,7 @@ imageDiff img1 img2 = sum $ do
   y <- [0..(y_max-1)]
   return $ pixelDiff (pixelAt img1 x y) (pixelAt img2 x y)
     where
-      (x_max, y_max) = imageSize
+      (x_max, y_max) = chunkSize
 
 polygonToDrawContext :: PrimMonad m => Polygon -> DrawContext m PixelRGBA8 ()
 polygonToDrawContext p = fillWithTexture FillWinding texture geometry
@@ -134,8 +139,8 @@ randomColor = runState (liftM4 PixelRGBA8 r r r r)
 randomCoord :: RandomGen g => g -> (Point, g)
 randomCoord = runState (liftM2 V2 r1 r2)
   where
-    r1 = state $ randomR (0, realToFrac $ fst imageSize)
-    r2 = state $ randomR (0, realToFrac $ snd imageSize)
+    r1 = state $ randomR (0, realToFrac $ fst chunkSize)
+    r2 = state $ randomR (0, realToFrac $ snd chunkSize)
 
 nRandomCoords :: RandomGen g => Int -> g -> ([Point], g)
 nRandomCoords n g = addNRandom n randomCoord ([], g)
@@ -272,7 +277,52 @@ finalImage img g0 = renderChromosome finalC
 percentFitness :: Integer -> Float
 percentFitness diff = 100 * (1 - ratio)
   where
-    (width, height) = imageSize
+    (width, height) = chunkSize
     [w, h] = toInteger <$> [width, height]
     maxDiff = 255*3*w*h
     ratio = fromIntegral(diff) / fromIntegral(maxDiff)
+
+type Chunks = [[Image PixelRGBA8]]
+
+divideByY :: Int -> Image PixelRGBA8 -> [Image PixelRGBA8]
+divideByY y img
+  | y >= imgHeight = []
+  | otherwise = (crop 0 y chunkHeight chunkHeight img) : (divideByY (y + chunkHeight) img)
+  where
+    (chunkWidth, chunkHeight) = chunkSize
+    (imgWidth, imgHeight) = imageSize
+
+divideByX :: Int -> Image PixelRGBA8 -> [Image PixelRGBA8]
+divideByX x img
+  | x >= imgWidth = []
+  | otherwise = byX : (divideByX (x + chunkWidth) img)
+  where
+    byX = crop x 0 chunkWidth imgHeight img
+    -- byY = divideByY x 0 byX
+    (chunkWidth, chunkHeight) = chunkSize
+    (imgWidth, imgHeight) = imageSize
+
+divideImage :: Image PixelRGBA8 -> Chunks
+divideImage img = map (divideByY 0) $ divideByX 0 img
+
+gaList :: RandomGen g => [Image PixelRGBA8] -> g -> [Image PixelRGBA8]
+gaList [] _ = []
+gaList (x:xs) g0 = (finalImage x g1) : (gaList xs g2)
+  where
+    (g1, g2) = split g0
+
+gaChunks :: RandomGen g => Chunks -> g -> Chunks
+gaChunks [] _ = []
+gaChunks (x:xs) g0 = (gaList x g1) : (gaChunks xs g2)
+  where
+    (g1, g2) = split g0
+
+combineChunks :: Chunks -> Image PixelRGBA8
+combineChunks = beside . map below
+
+divideAndConquer :: RandomGen g => Image PixelRGBA8 -> g -> Image PixelRGBA8
+divideAndConquer img g = combineChunks calculated
+-- divideAndConquer img g = beside $ divideByX 0 img
+  where
+    divided = divideImage img
+    calculated = gaChunks divided g
