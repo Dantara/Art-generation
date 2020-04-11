@@ -37,7 +37,7 @@ parentsAmount :: Int
 parentsAmount = 2
 
 gaN :: Int
-gaN = 200
+gaN = 300
 
 basePolygonColor :: PixelRGBA8
 basePolygonColor = PixelRGBA8 255 255 255 0
