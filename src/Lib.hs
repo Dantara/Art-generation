@@ -1,6 +1,6 @@
 {-# LANGUAGE DeriveGeneric, DeriveAnyClass #-}
 module Lib
-    ( someFunc
+    ( outputFunc
     ) where
 
 import Control.Monad.State.Lazy
@@ -18,38 +18,46 @@ import Control.Monad.Primitive
 import Control.Monad.ST
 import Codec.Picture.Extra
 
+-- Size of initial image
 imageSize :: (Int, Int)
 imageSize = (512, 512)
 
+-- Size of chunk
 chunkSize :: (Int, Int)
 chunkSize = (8, 8)
 
+-- Amount of vertices in polygon
 polygonVertices :: Int
 polygonVertices = 3
 
+-- Size of chromosome, in other words
+-- number of polygons in one chunk
 chromosomeSize :: Int
 chromosomeSize = 6
 
+-- Size of population for one chunk
 populationSize :: Int
 populationSize = 12
 
+-- Amount of parents
 parentsAmount :: Int
 parentsAmount = 2
 
+-- Amount of genetic algorithm iterations for one chunk
 gaN :: Int
-gaN = 300
+gaN = 200
 
-basePolygonColor :: PixelRGBA8
-basePolygonColor = PixelRGBA8 255 255 255 0
-
+-- Background color of image
 baseBackgroundColor :: PixelRGBA8
-baseBackgroundColor = PixelRGBA8 255 255 255 255
+baseBackgroundColor = PixelRGBA8 0 0 0 255
 
+-- Path to input image
 inputImagePath :: String
-inputImagePath = "input4.png"
+inputImagePath = "input.png"
 
+-- Path to output image
 outputImagePath :: String
-outputImagePath = "output.png"
+outputImagePath = "output1.png"
 
 data Polygon = Polygon [Point] PixelRGBA8 deriving (Show, Generic, NFData)
 type Gene = Polygon
@@ -62,8 +70,8 @@ instance NFData (V2 a) where
 instance NFData PixelRGBA8 where
   rnf x = seq x ()
 
-someFunc :: IO ()
-someFunc = do
+outputFunc :: IO ()
+outputFunc = do
   g <- newStdGen
   imageLoad <- readImage inputImagePath
 
@@ -72,22 +80,16 @@ someFunc = do
     Right image -> do
       let inputImg = fromDynamicImage image
           outputImg = divideAndConquer inputImg g
-          -- outputImg = finalImage inputImg g
 
       putStr "Final fitness is: "
-      putStrLn $ (show $ percentFitness $ imageDiff inputImg outputImg) ++ "%"
-      writePng outputImagePath $ outputImg
+      putStrLn $ show (percentFitness $ imageDiff inputImg outputImg) ++ "%"
+      writePng outputImagePath outputImg
 
 addNRandom :: RandomGen g => Int -> (g -> (a, g)) -> ([a], g) -> ([a], g)
 addNRandom 0 _ x = x
 addNRandom n f (ys, g) = addNRandom (n-1) f (y : ys, newG)
   where
     (y, newG) = f g
-
-initPolygon :: RandomGen g => g -> (Polygon, g)
-initPolygon g0 = (Polygon coords basePolygonColor, g1)
-  where
-    (coords, g1) = nRandomCoords polygonVertices g0
 
 randomPolygon :: RandomGen g => g -> (Polygon, g)
 randomPolygon g0 = (Polygon coords color, g2)
@@ -107,7 +109,6 @@ renderChromosome c = runST
   $ mapM_ polygonToDrawContext c
   where
     (width, height) = chunkSize
-    -- white = PixelRGBA8 255 255 255 255
 
 pixelDiff :: PixelRGBA8 -> PixelRGBA8 -> Integer
 pixelDiff px1 px2 = (abs (r1-r2)) + (abs (g1-g2)) + (abs (b1-b2))
@@ -249,10 +250,6 @@ combinePopulation parents children g = (newP <> p, newG)
     amount = populationSize - (length p)
     p = parents ++ children
 
--- populations diff
--- get parents
--- crossover
--- combinePopulation
 gaLoopBody :: RandomGen g => (Population, g, Image PixelRGBA8) -> (Population, g, Image PixelRGBA8)
 gaLoopBody (p, g, img) = (newP, g2, img)
   where
@@ -289,8 +286,8 @@ divideByY y img
   | y >= imgHeight = []
   | otherwise = (crop 0 y chunkHeight chunkHeight img) : (divideByY (y + chunkHeight) img)
   where
-    (chunkWidth, chunkHeight) = chunkSize
-    (imgWidth, imgHeight) = imageSize
+    (_, chunkHeight) = chunkSize
+    (_, imgHeight) = imageSize
 
 divideByX :: Int -> Image PixelRGBA8 -> [Image PixelRGBA8]
 divideByX x img
@@ -298,8 +295,7 @@ divideByX x img
   | otherwise = byX : (divideByX (x + chunkWidth) img)
   where
     byX = crop x 0 chunkWidth imgHeight img
-    -- byY = divideByY x 0 byX
-    (chunkWidth, chunkHeight) = chunkSize
+    (chunkWidth, _) = chunkSize
     (imgWidth, imgHeight) = imageSize
 
 divideImage :: Image PixelRGBA8 -> Chunks
@@ -321,8 +317,8 @@ combineChunks :: Chunks -> Image PixelRGBA8
 combineChunks = beside . map below
 
 divideAndConquer :: RandomGen g => Image PixelRGBA8 -> g -> Image PixelRGBA8
-divideAndConquer img g = combineChunks calculated
--- divideAndConquer img g = beside $ divideByX 0 img
+divideAndConquer img g = combineChunks parCalculated
   where
     divided = divideImage img
     calculated = gaChunks divided g
+    parCalculated = calculated `using` parList rdeepseq
