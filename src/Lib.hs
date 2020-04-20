@@ -57,7 +57,7 @@ inputImagePath = "input.png"
 
 -- Path to output image
 outputImagePath :: String
-outputImagePath = "output1.png"
+outputImagePath = "output.png"
 
 data Polygon = Polygon [Point] PixelRGBA8 deriving (Show, Generic, NFData)
 type Gene = Polygon
@@ -82,7 +82,7 @@ outputFunc = do
           outputImg = divideAndConquer inputImg g
 
       putStr "Final fitness is: "
-      putStrLn $ show (percentFitness $ imageDiff inputImg outputImg) ++ "%"
+      putStrLn $ show (percentFitness $ imageDiff inputImg outputImg imageSize) ++ "%"
       writePng outputImagePath outputImg
 
 addNRandom :: RandomGen g => Int -> (g -> (a, g)) -> ([a], g) -> ([a], g)
@@ -111,19 +111,17 @@ renderChromosome c = runST
     (width, height) = chunkSize
 
 pixelDiff :: PixelRGBA8 -> PixelRGBA8 -> Integer
-pixelDiff px1 px2 = (abs (r1-r2)) + (abs (g1-g2)) + (abs (b1-b2))
+pixelDiff px1 px2 = abs (r1-r2) + abs (g1-g2) + abs (b1-b2)
   where
     [r1, g1, b1, r2, g2, b2] = toInteger <$> [r1_, g1_, b1_, r2_, g2_, b2_]
     (PixelRGBA8 r1_ g1_ b1_ _) = px1
     (PixelRGBA8 r2_ g2_ b2_ _) = px2
 
-imageDiff :: Image PixelRGBA8 -> Image PixelRGBA8 -> Integer
-imageDiff img1 img2 = sum $ do
+imageDiff :: Image PixelRGBA8 -> Image PixelRGBA8 -> (Int, Int)-> Integer
+imageDiff img1 img2 (x_max, y_max) = sum $ do
   x <- [0..(x_max-1)]
   y <- [0..(y_max-1)]
   return $ pixelDiff (pixelAt img1 x y) (pixelAt img2 x y)
-    where
-      (x_max, y_max) = chunkSize
 
 polygonToDrawContext :: PrimMonad m => Polygon -> DrawContext m PixelRGBA8 ()
 polygonToDrawContext p = fillWithTexture FillWinding texture geometry
@@ -166,7 +164,7 @@ mutateXById :: RandomGen g => Int -> (g -> (a, g)) -> [a] -> g -> ([a], g)
 mutateXById _ _ [] g = ([], g)
 mutateXById n f x@(_:ys) g
   | n == 0 = (newY:ys, newG)
-  | otherwise = (concat (first, newY:newYs), newG)
+  | otherwise = (first <> (newY:newYs), newG)
     where
       (first, _:newYs) = splitAt (n-1) x
       (newY, newG) = f g
@@ -200,27 +198,27 @@ crossover parent1 parent2 = [child1, child2]
   where
     (f1, s1) = splitAt (length parent1 `div` 2) parent1
     (f2, s2) = splitAt (length parent2 `div` 2) parent2
-    child1 = concat (f1, s2)
-    child2 = concat (f2, s1)
+    child1 = f1 <> s2
+    child2 = f2 <> s1
 
 chromosomeDiff :: Chromosome -> Image PixelRGBA8 -> (Chromosome, Integer)
-chromosomeDiff c img = (c, imageDiff img newImg)
+chromosomeDiff c img = (c, imageDiff img newImg chunkSize)
   where
     newImg = renderChromosome c
 
 populationDiff :: Population -> Image PixelRGBA8 -> [(Chromosome, Integer)]
-populationDiff cs img = parMap rdeepseq (\c -> chromosomeDiff c img) cs
+populationDiff cs img = parMap rdeepseq (`chromosomeDiff` img) cs
 
 getParents :: Int -> [(Chromosome, Integer)]  -> [Chromosome]
-getParents n gs = map (\(c,_) -> c) parents
+getParents n gs = map fst parents
   where
     parents = take n $ sortBy (\(_,i1) (_,i2) -> compare i1 i2) gs
 
 addToOffspring :: [Chromosome] -> [Chromosome] -> [Chromosome]
 addToOffspring [] os = os
-addToOffspring (p:ps) os = addToOffspring ps $ concat (os, newOs)
+addToOffspring (p:ps) os = addToOffspring ps $ os <> newOs
   where
-    newOs = concat [(crossover p x) | x <- ps]
+    newOs = concat [crossover p x | x <- ps]
 
 offspring :: [Chromosome] -> [Chromosome]
 offspring cs = addToOffspring cs []
@@ -232,7 +230,7 @@ mutateChromosome c g = mutateXById index (mutateGene $ c !! index) c newG
 
 mutateChromosomes :: RandomGen g => [Chromosome] -> g -> [Chromosome]
 mutateChromosomes [] _ = []
-mutateChromosomes (c:cs) g = newC : (mutateChromosomes cs g2)
+mutateChromosomes (c:cs) g = newC : mutateChromosomes cs g2
   where
     (newC, _) = mutateChromosome c g1
     (g1, g2) = split g
@@ -247,7 +245,7 @@ combinePopulation :: RandomGen g => [Chromosome] -> [Chromosome] -> g -> (Popula
 combinePopulation parents children g = (newP <> p, newG)
   where
     (newP, newG) = mutatePopulation (take amount $ cycle p) g
-    amount = populationSize - (length p)
+    amount = populationSize - length p
     p = parents ++ children
 
 gaLoopBody :: RandomGen g => (Population, g, Image PixelRGBA8) -> (Population, g, Image PixelRGBA8)
@@ -274,17 +272,17 @@ finalImage img g0 = renderChromosome finalC
 percentFitness :: Integer -> Float
 percentFitness diff = 100 * (1 - ratio)
   where
-    (width, height) = chunkSize
+    (width, height) = imageSize
     [w, h] = toInteger <$> [width, height]
     maxDiff = 255*3*w*h
-    ratio = fromIntegral(diff) / fromIntegral(maxDiff)
+    ratio = fromIntegral diff / fromIntegral maxDiff
 
 type Chunks = [[Image PixelRGBA8]]
 
 divideByY :: Int -> Image PixelRGBA8 -> [Image PixelRGBA8]
 divideByY y img
   | y >= imgHeight = []
-  | otherwise = (crop 0 y chunkHeight chunkHeight img) : (divideByY (y + chunkHeight) img)
+  | otherwise = crop 0 y chunkHeight chunkHeight img : divideByY (y + chunkHeight) img
   where
     (_, chunkHeight) = chunkSize
     (_, imgHeight) = imageSize
@@ -292,7 +290,7 @@ divideByY y img
 divideByX :: Int -> Image PixelRGBA8 -> [Image PixelRGBA8]
 divideByX x img
   | x >= imgWidth = []
-  | otherwise = byX : (divideByX (x + chunkWidth) img)
+  | otherwise = byX : divideByX (x + chunkWidth) img
   where
     byX = crop x 0 chunkWidth imgHeight img
     (chunkWidth, _) = chunkSize
@@ -303,13 +301,13 @@ divideImage img = map (divideByY 0) $ divideByX 0 img
 
 gaList :: RandomGen g => [Image PixelRGBA8] -> g -> [Image PixelRGBA8]
 gaList [] _ = []
-gaList (x:xs) g0 = (finalImage x g1) : (gaList xs g2)
+gaList (x:xs) g0 = finalImage x g1 : gaList xs g2
   where
     (g1, g2) = split g0
 
 gaChunks :: RandomGen g => Chunks -> g -> Chunks
 gaChunks [] _ = []
-gaChunks (x:xs) g0 = (gaList x g1) : (gaChunks xs g2)
+gaChunks (x:xs) g0 = gaList x g1 : gaChunks xs g2
   where
     (g1, g2) = split g0
 
