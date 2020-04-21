@@ -53,11 +53,11 @@ baseBackgroundColor = PixelRGBA8 0 0 0 255
 
 -- Path to input image
 inputImagePath :: String
-inputImagePath = "input.png"
+inputImagePath = "inputs/input.png"
 
 -- Path to output image
 outputImagePath :: String
-outputImagePath = "output.png"
+outputImagePath = "outputs/output.png"
 
 data Polygon = Polygon [Point] PixelRGBA8 deriving (Show, Generic, NFData)
 type Gene = Polygon
