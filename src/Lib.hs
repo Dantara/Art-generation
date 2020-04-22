@@ -18,51 +18,54 @@ import Control.Monad.Primitive
 import Control.Monad.ST
 import Codec.Picture.Extra
 
--- Size of initial image
 imageSize :: (Int, Int)
+chunkSize :: (Int, Int)
+polygonVertices :: Int
+chromosomeSize :: Int
+populationSize :: Int
+parentsAmount :: Int
+gaN :: Int
+baseBackgroundColor :: PixelRGBA8
+inputImagePath :: String
+outputImagePath :: String
+
+-- Size of initial image
 imageSize = (512, 512)
 
 -- Size of chunk
-chunkSize :: (Int, Int)
 chunkSize = (8, 8)
 
 -- Amount of vertices in polygon
-polygonVertices :: Int
 polygonVertices = 3
 
 -- Size of chromosome, in other words
 -- number of polygons in one chunk
-chromosomeSize :: Int
 chromosomeSize = 6
 
 -- Size of population for one chunk
-populationSize :: Int
 populationSize = 12
 
 -- Amount of parents
-parentsAmount :: Int
 parentsAmount = 2
 
 -- Amount of genetic algorithm iterations for one chunk
-gaN :: Int
-gaN = 200
+gaN = 400
 
 -- Background color of image
-baseBackgroundColor :: PixelRGBA8
 baseBackgroundColor = PixelRGBA8 0 0 0 255
 
 -- Path to input image
-inputImagePath :: String
-inputImagePath = "inputs/input.png"
+inputImagePath = "inputs/input4.png"
 
 -- Path to output image
-outputImagePath :: String
-outputImagePath = "outputs/output.png"
+outputImagePath = "outputs/output4_.png"
 
 data Polygon = Polygon [Point] PixelRGBA8 deriving (Show, Generic, NFData)
 type Gene = Polygon
 type Chromosome = [Gene]
 type Population = [Chromosome]
+
+type Chunks = [[Image PixelRGBA8]]
 
 instance NFData (V2 a) where
   rnf x = seq x ()
@@ -82,7 +85,7 @@ outputFunc = do
           outputImg = divideAndConquer inputImg g
 
       putStr "Final fitness is: "
-      putStrLn $ show (percentFitness $ imageDiff inputImg outputImg imageSize) ++ "%"
+      putStrLn $ show (percentFitness $ imageDiff inputImg outputImg imageSize) <> "%"
       writePng outputImagePath outputImg
 
 addNRandom :: RandomGen g => Int -> (g -> (a, g)) -> ([a], g) -> ([a], g)
@@ -97,8 +100,15 @@ randomPolygon g0 = (Polygon coords color, g2)
     (coords, g1) = nRandomCoords polygonVertices g0
     (color, g2) = randomColor g1
 
+initPolygon :: RandomGen g => g -> (Polygon, g)
+initPolygon g0 = (Polygon coords (PixelRGBA8 r g b 0), g2)
+  where
+    (coords, g1) = nRandomCoords polygonVertices g0
+    (color, g2) = randomColor g1
+    PixelRGBA8 r g b _ = color
+
 initChromosome :: RandomGen g => g -> (Chromosome, g)
-initChromosome g = addNRandom chromosomeSize randomPolygon ([], g)
+initChromosome g = addNRandom chromosomeSize initPolygon ([], g)
 
 initPopulation :: RandomGen g => g -> (Population, g)
 initPopulation g = addNRandom populationSize initChromosome ([], g)
@@ -117,7 +127,7 @@ pixelDiff px1 px2 = abs (r1-r2) + abs (g1-g2) + abs (b1-b2)
     (PixelRGBA8 r1_ g1_ b1_ _) = px1
     (PixelRGBA8 r2_ g2_ b2_ _) = px2
 
-imageDiff :: Image PixelRGBA8 -> Image PixelRGBA8 -> (Int, Int)-> Integer
+imageDiff :: Image PixelRGBA8 -> Image PixelRGBA8 -> (Int, Int) -> Integer
 imageDiff img1 img2 (x_max, y_max) = sum $ do
   x <- [0..(x_max-1)]
   y <- [0..(y_max-1)]
@@ -209,10 +219,13 @@ chromosomeDiff c img = (c, imageDiff img newImg chunkSize)
 populationDiff :: Population -> Image PixelRGBA8 -> [(Chromosome, Integer)]
 populationDiff cs img = parMap rdeepseq (`chromosomeDiff` img) cs
 
-getParents :: Int -> [(Chromosome, Integer)]  -> [Chromosome]
-getParents n gs = map fst parents
+getNBest :: Int -> [(Chromosome, Integer)]  -> [Chromosome]
+getNBest n gs = map fst parents
   where
     parents = take n $ sortBy (\(_,i1) (_,i2) -> compare i1 i2) gs
+
+selectNBest :: Int -> Population -> Image PixelRGBA8 -> [Chromosome]
+selectNBest n p img = getNBest n $! populationDiff p img
 
 addToOffspring :: [Chromosome] -> [Chromosome] -> [Chromosome]
 addToOffspring [] os = os
@@ -251,7 +264,7 @@ combinePopulation parents children g = (newP <> p, newG)
 gaLoopBody :: RandomGen g => (Population, g, Image PixelRGBA8) -> (Population, g, Image PixelRGBA8)
 gaLoopBody (p, g, img) = (newP, g2, img)
   where
-    parents = getParents parentsAmount $! populationDiff p img
+    parents = selectNBest parentsAmount p img
     children = offspring parents
     (newP, _) = combinePopulation parents children g1
     (g1, g2) = split g
@@ -260,7 +273,7 @@ runGANTimes :: RandomGen g => Int -> (Population, g, Image PixelRGBA8) -> (Popul
 runGANTimes n t = last $ take n $ iterate gaLoopBody t
 
 finalChromosome :: Population -> Image PixelRGBA8 -> Chromosome
-finalChromosome p img = head $ getParents 1 $ populationDiff p img
+finalChromosome p img = head $ selectNBest 1 p img
 
 finalImage :: RandomGen g => Image PixelRGBA8 -> g -> Image PixelRGBA8
 finalImage img g0 = renderChromosome finalC
@@ -276,8 +289,6 @@ percentFitness diff = 100 * (1 - ratio)
     [w, h] = toInteger <$> [width, height]
     maxDiff = 255*3*w*h
     ratio = fromIntegral diff / fromIntegral maxDiff
-
-type Chunks = [[Image PixelRGBA8]]
 
 divideByY :: Int -> Image PixelRGBA8 -> [Image PixelRGBA8]
 divideByY y img
