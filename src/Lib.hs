@@ -259,7 +259,7 @@ combinePopulation parents children g = (newP <> p, newG)
   where
     (newP, newG) = mutatePopulation (take amount $ cycle p) g
     amount = populationSize - length p
-    p = parents ++ children
+    p = parents <> children
 
 gaLoopBody :: RandomGen g => (Population, g, Image PixelRGBA8) -> (Population, g, Image PixelRGBA8)
 gaLoopBody (p, g, img) = (newP, g2, img)
@@ -270,7 +270,7 @@ gaLoopBody (p, g, img) = (newP, g2, img)
     (g1, g2) = split g
 
 runGANTimes :: RandomGen g => Int -> (Population, g, Image PixelRGBA8) -> (Population, g, Image PixelRGBA8)
-runGANTimes n t = last $ take n $ iterate gaLoopBody t
+runGANTimes n t = iterate gaLoopBody t !! n
 
 finalChromosome :: Population -> Image PixelRGBA8 -> Chromosome
 finalChromosome p img = head $ selectNBest 1 p img
