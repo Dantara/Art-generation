@@ -49,7 +49,7 @@ populationSize = 12
 parentsAmount = 2
 
 -- Amount of genetic algorithm iterations for one chunk
-gaN = 400
+gaN = 300
 
 -- Background color of image
 baseBackgroundColor = PixelRGBA8 0 0 0 255
@@ -127,7 +127,7 @@ pixelDiff px1 px2 = abs (r1-r2) + abs (g1-g2) + abs (b1-b2)
     (PixelRGBA8 r1_ g1_ b1_ _) = px1
     (PixelRGBA8 r2_ g2_ b2_ _) = px2
 
-imageDiff :: Image PixelRGBA8 -> Image PixelRGBA8 -> (Int, Int)-> Integer
+imageDiff :: Image PixelRGBA8 -> Image PixelRGBA8 -> (Int, Int) -> Integer
 imageDiff img1 img2 (x_max, y_max) = sum $ do
   x <- [0..(x_max-1)]
   y <- [0..(y_max-1)]
