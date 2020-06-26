@@ -49,16 +49,16 @@ populationSize = 12
 parentsAmount = 2
 
 -- Amount of genetic algorithm iterations for one chunk
-gaN = 3500
+gaN = 300
 
 -- Background color of image
 baseBackgroundColor = PixelRGBA8 0 0 0 255
 
 -- Path to input image
-inputImagePath = "inputs/final3.png"
+inputImagePath = "inputs/input.png"
 
 -- Path to output image
-outputImagePath = "outputs/FINAL_3500.png"
+outputImagePath = "outputs/output.png"
 
 data Polygon = Polygon [Point] PixelRGBA8 deriving (Show, Generic, NFData)
 type Gene = Polygon
